@@ -1,0 +1,16 @@
+# Node
+node_modules/
+
+# Env
+.env
+.env.local
+
+# Next
+.next/
+out/
+
+# Logs
+npm-debug.log*
+
+# System
+.DS_Store
