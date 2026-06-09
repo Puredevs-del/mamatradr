@@ -13,7 +13,25 @@ const uploadRoutes = require("./routes/upload");
 
 const app = express();
 
-app.use(cors());
+const ALLOWED_ORIGINS = [
+  "https://mamatradr-frontend-production.up.railway.app",
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl)
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -35,25 +53,33 @@ app.get("/", async (req, res) => {
     if (error) {
       return res.json({
         connected: true,
-        error: error.message
+        error: error.message,
       });
     }
 
     return res.json({
       connected: true,
-      users: data.length
+      users: data.length,
     });
-
   } catch (err) {
+    console.error("Health check error:", err.message);
     return res.status(500).json({
       connected: false,
-      error: err.message
+      error: err.message,
     });
   }
 });
 
-const PORT = process.env.PORT || 5000;
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(err.status || 500).json({ error: err.message });
+});
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 8080;
+const HOST = "0.0.0.0";
+
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Allowed CORS origins: ${ALLOWED_ORIGINS.join(", ")}`);
 });
