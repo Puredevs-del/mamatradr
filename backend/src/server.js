@@ -13,7 +13,17 @@ const uploadRoutes = require("./routes/upload");
 
 const app = express();
 
-app.use(cors());
+const ALLOWED_ORIGINS = [
+  "https://mamatradr-frontend-production.up.railway.app",
+];
+
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  })
+);
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -26,7 +36,7 @@ app.use("/api/listings", listingRoutes);
 
 app.use("/api/upload", uploadRoutes);
 
-app.get("/", async (req, res) => {
+async function healthCheck(req, res) {
   try {
     const { data, error } = await supabase
       .from("users")
@@ -35,25 +45,28 @@ app.get("/", async (req, res) => {
     if (error) {
       return res.json({
         connected: true,
-        error: error.message
+        error: error.message,
       });
     }
 
     return res.json({
       connected: true,
-      users: data.length
+      users: data.length,
     });
-
   } catch (err) {
     return res.status(500).json({
       connected: false,
-      error: err.message
+      error: err.message,
     });
   }
-});
+}
 
-const PORT = process.env.PORT || 5000;
+app.get("/", healthCheck);
+app.get("/api/", healthCheck);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on 0.0.0.0:${PORT}`);
+  console.log(`CORS allowed origins: ${ALLOWED_ORIGINS.join(", ")}`);
 });
